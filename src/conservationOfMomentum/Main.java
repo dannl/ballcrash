@@ -14,95 +14,123 @@
  ******************************************************************************/
 package conservationOfMomentum;
 
+import com.sun.org.apache.bcel.internal.generic.I2F;
+
 /**
  * Main of conservationOfMomentum.
  * @author danliu
  *
  */
 public class Main {
+	
+	private enum Side {
+		LEFT, RIGHT
+	} 
+    
+    private static final double BALL_VELOCITY_LEFT = 4;
+    
+    private static final double BALL_VELOCITY_RIGHT = 8;
+    
+    private static final double LEFT_BALL_DISTANCE = 40;
+    
+    private static final double RIGHT_BALL_DISTANCE = 80;
 
-    private static final double BALL_MASS = 10;
+    private static final int BALL_COUNT = 16;
 
-    private static final double BALL_VELOCITY = 5;
-
-    private static final long LEFT_SIDE_STEP_IN = 3000;
-
-    private static final long RIGHT_SIDE_STEP_IN = 3000;
-
-    private static final int LEFT_SIDE_BALLS_COUNT = 16;
-
-    private static final int RIGHT_SIDE_BALLS_COUNT = 16;
 
     private static final double BALL_SYSTEM_STARTING_DISTANCE = 1000;
 
     public static final void main(final String[] args) {
-        final Ball[] leftSideBalls = new Ball[LEFT_SIDE_BALLS_COUNT];
-        final Ball[] rightSideBalls = new Ball[RIGHT_SIDE_BALLS_COUNT];
-        long current = System.currentTimeMillis();
-        for (int i = 0; i < LEFT_SIDE_BALLS_COUNT; i++) {
-            leftSideBalls[i] = new Ball(current + i * LEFT_SIDE_STEP_IN, BALL_VELOCITY, 0);
+        final Ball[] leftSideBalls = new Ball[BALL_COUNT];
+        final Ball[] rightSideBalls = new Ball[BALL_COUNT];
+        for (int i = 0; i < BALL_COUNT; i++) {
+            leftSideBalls[i] = new Ball(BALL_COUNT - i);
         }
 
-        for (int i = 0; i < RIGHT_SIDE_BALLS_COUNT; i++) {
-            rightSideBalls[i] = new Ball(current + i * RIGHT_SIDE_STEP_IN, - BALL_VELOCITY, BALL_SYSTEM_STARTING_DISTANCE);
+        for (int i = 0; i < BALL_COUNT; i++) {
+            rightSideBalls[i] = new Ball(BALL_COUNT - i);
         }
-
-        final Ball[] allBalls = new Ball[LEFT_SIDE_BALLS_COUNT + RIGHT_SIDE_BALLS_COUNT];
-
-        for (int i = LEFT_SIDE_BALLS_COUNT - 1; i >= 0; i++) {
-            allBalls[i] = leftSideBalls[i];
-        }
-
-        for (int i = 0; i < RIGHT_SIDE_BALLS_COUNT; i++) {
-            allBalls[i + LEFT_SIDE_BALLS_COUNT] = rightSideBalls[i];
-        }
-
-        while (true) {
-
-            current = System.currentTimeMillis();
-
-            for (int i = 0; i < allBalls.length; i++) {
-                if (i == 0) {
-
-                } else if (i == allBalls.length - 1) {
-
-                } else {
-
-                }
-            }
-
-        }
-
+        
+        double velocitySum = BALL_VELOCITY_LEFT + BALL_VELOCITY_RIGHT;
+        leftSideBalls[0].mTimeGaps[0] = 0;
+        rightSideBalls[0].mTimeGaps[0] = 0;
+        for (int i = 0; i < BALL_COUNT - 1; i++) {
+        		leftSideBalls[i].mTimeGaps[1] = LEFT_BALL_DISTANCE / velocitySum;
+        		rightSideBalls[i].mTimeGaps[1] = RIGHT_BALL_DISTANCE / velocitySum;
+		}
+        
+        for (int j = 0; j < BALL_COUNT * 2 - 1; j++) {
+        	if (j == 1) {
+				continue;
+			}
+        	for (int i = 0; i < BALL_COUNT; i++) {
+        		if (j >= (BALL_COUNT - i) * 2 - 1) {
+					break;
+				}
+				if (i == 0) {
+					if (j == 0) {
+						break;
+					}
+					int k = j / 2;
+					if (j % 2 == 0) {
+						leftSideBalls[i].mTimeGaps[2 * k] = (leftSideBalls[i].mTimeGaps[2 * k - 1] * BALL_VELOCITY_RIGHT + rightSideBalls[i].mTimeGaps[2 * k - 1] * BALL_VELOCITY_LEFT) / velocitySum;
+						rightSideBalls[i].mTimeGaps[2 * k] = (rightSideBalls[i].mTimeGaps[2 * k - 1] * BALL_VELOCITY_LEFT + leftSideBalls[i].mTimeGaps[2 * k - 1] * BALL_VELOCITY_RIGHT) / velocitySum;
+					} else {
+						leftSideBalls[i].mTimeGaps[2 * k + 1] = (leftSideBalls[i + 1].mTimeGaps[2 * k] * BALL_VELOCITY_LEFT + leftSideBalls[i].mTimeGaps[2 * k - 2] * BALL_VELOCITY_RIGHT) / velocitySum;
+						rightSideBalls[i].mTimeGaps[2 * k + 1] = (rightSideBalls[i + 1].mTimeGaps[2 * k] * BALL_VELOCITY_RIGHT + rightSideBalls[i].mTimeGaps[2 * k - 2] * BALL_VELOCITY_LEFT) / velocitySum;
+					}
+				} else {
+					if (j == 0) {
+						leftSideBalls[i].mTimeGaps[j] = leftSideBalls[i - 1].mTimeGaps[1] + leftSideBalls[i - 1].mTimeGaps[0]; 
+						rightSideBalls[i].mTimeGaps[j] = rightSideBalls[i - 1].mTimeGaps[1] + rightSideBalls[i - 1].mTimeGaps[0]; 
+					} else {
+						int k = j / 2;
+						if (j % 2 == 0) {
+							leftSideBalls[i].mTimeGaps[2 * k] = (leftSideBalls[i].mTimeGaps[2 * k - 1] * BALL_VELOCITY_RIGHT + leftSideBalls[i + 1].mTimeGaps[2 * k - 1] * BALL_VELOCITY_LEFT) / velocitySum;
+							rightSideBalls[i].mTimeGaps[2 * k] = (rightSideBalls[i].mTimeGaps[2 * k - 1] * BALL_VELOCITY_LEFT + rightSideBalls[i + 1].mTimeGaps[2 * k - 1] * BALL_VELOCITY_RIGHT) / velocitySum;
+						} else {
+							leftSideBalls[i].mTimeGaps[2 * k + 1] = (leftSideBalls[i + 1].mTimeGaps[2 * k] * BALL_VELOCITY_LEFT + leftSideBalls[i].mTimeGaps[2 * k - 2] * BALL_VELOCITY_RIGHT) / velocitySum;
+							rightSideBalls[i].mTimeGaps[2 * k + 1] = (rightSideBalls[i + 1].mTimeGaps[2 * k] * BALL_VELOCITY_RIGHT + rightSideBalls[i].mTimeGaps[2 * k - 2] * BALL_VELOCITY_LEFT) / velocitySum;
+						}
+					}
+				}
+			}
+		}
+        System.out.println("left");
+        for (int i = 0; i < leftSideBalls.length; i++) {
+        	System.out.println(leftSideBalls[i].toString());
+		}
+        System.out.println("right");
+        for (int i = 0; i < rightSideBalls.length; i++) {
+        	System.out.println(rightSideBalls[i].toString());
+		}
+        
+        
 
     }
+    
 
     private static final class Ball {
-        private double mVelocity;
-        private double mX;
-        private long mLastTrackedTime;
-        private double mLastTrackedX;
 
-        Ball (final long startingTime, final double startingVelocity, final double startingX) {
-            mLastTrackedTime = startingTime;
-            mVelocity = startingVelocity;
-            mLastTrackedX = startingX;
+    	private double[] mTimeGaps;
+    	
+        Ball (final int inversedIndex) {
+        	mTimeGaps = new double[inversedIndex * 2 - 1];
         }
-
-        void go(final long current) {
-            mX = mLastTrackedX + mVelocity * (current - mLastTrackedTime);
-            mLastTrackedX = mX;
-            mLastTrackedTime = current;
+        
+        void draw() {
+        	
         }
-
-        double testGo(final long current) {
-            return mLastTrackedX + mVelocity * (current - mLastTrackedTime);
+        
+        @Override
+        public String toString() {
+        	StringBuilder builder = new StringBuilder();
+        	final double[] timeGaps = mTimeGaps;
+        	for (double d : timeGaps) {
+				builder.append(d).append(",");
+			}
+        	return builder.toString();
         }
-    }
-
-    private static final void crash(final Ball ballLeft, final Ball ballMiddle, final Ball ballRight, final long current) {
-        final double leftX = ballLeft.testGo(current);
-        final double middleX = ballMiddle.testGo(current);
-        final double rightX = ballRight.testGo(current);
 
     }
 
